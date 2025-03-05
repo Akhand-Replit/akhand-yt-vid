@@ -48,7 +48,7 @@ if url:
                     st.session_state.yt.bypass_age_gate()
                 
                 st.session_state.current_url = url
-                st.experimental_rerun()
+                st.rerun()
 
         if 'yt' in st.session_state:
             yt = st.session_state.yt
