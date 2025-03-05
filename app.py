@@ -1,6 +1,10 @@
 import streamlit as st
 from pytube import YouTube
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 def download_media(yt, download_type='video'):
     try:
@@ -20,6 +24,7 @@ def download_media(yt, download_type='video'):
         return None
     except Exception as e:
         st.error(f"Download Error: {e}")
+        logging.error(f"Download failed: {str(e)}")
         return None
 
 # Streamlit UI
@@ -29,29 +34,24 @@ st.write("Paste a YouTube URL below to download video or audio")
 url = st.text_input("YouTube URL:")
 
 if url:
-    if 'yt' not in st.session_state or st.session_state.current_url != url:
-        try:
-            # Initialize YouTube object with OAuth and caching
-            st.session_state.yt = YouTube(
-                url,
-                use_oauth=True,
-                allow_oauth_cache=True
-            )
-            
-            # Bypass age restriction if needed
-            if st.session_state.yt.age_restricted:
-                st.session_state.yt.bypass_age_gate()
-            
-            st.session_state.current_url = url
-            st.rerun()
-        
-        except Exception as e:
-            st.error(f"Initialization Error: {str(e)}")
-            st.stop()
+    try:
+        if 'yt' not in st.session_state or st.session_state.current_url != url:
+            with st.spinner('Initializing connection...'):
+                st.session_state.yt = YouTube(
+                    url,
+                    use_oauth=True,
+                    allow_oauth_cache=True
+                )
+                
+                if st.session_state.yt.age_restricted:
+                    st.info("Age-restricted content detected, attempting bypass...")
+                    st.session_state.yt.bypass_age_gate()
+                
+                st.session_state.current_url = url
+                st.experimental_rerun()
 
-    if 'yt' in st.session_state:
-        yt = st.session_state.yt
-        try:
+        if 'yt' in st.session_state:
+            yt = st.session_state.yt
             st.image(yt.thumbnail_url, width=300)
             st.subheader(yt.title)
             st.write(f"Channel: {yt.author}")
@@ -61,44 +61,45 @@ if url:
             
             with col1:
                 st.subheader("Video Download")
-                st.write("Download highest quality video")
                 if st.button("Download MP4"):
-                    video_path = download_media(yt, 'video')
-                    if video_path:
-                        with open(video_path, 'rb') as f:
-                            st.download_button(
-                                label="Save Video",
-                                data=f,
-                                file_name=os.path.basename(video_path),
-                                mime='video/mp4'
-                            )
-                        os.remove(video_path)
+                    with st.spinner('Downloading video...'):
+                        video_path = download_media(yt, 'video')
+                        if video_path:
+                            with open(video_path, 'rb') as f:
+                                st.download_button(
+                                    label="Save Video",
+                                    data=f,
+                                    file_name=os.path.basename(video_path),
+                                    mime='video/mp4'
+                                )
+                            os.remove(video_path)
             
             with col2:
                 st.subheader("Audio Download")
-                st.write("Download MP3 audio only")
                 if st.button("Extract MP3"):
-                    audio_path = download_media(yt, 'audio')
-                    if audio_path:
-                        with open(audio_path, 'rb') as f:
-                            st.download_button(
-                                label="Save Audio",
-                                data=f,
-                                file_name=os.path.basename(audio_path),
-                                mime='audio/mpeg'
-                            )
-                        os.remove(audio_path)
-        
-        except Exception as e:
-            st.error(f"Processing Error: {str(e)}")
+                    with st.spinner('Extracting audio...'):
+                        audio_path = download_media(yt, 'audio')
+                        if audio_path:
+                            with open(audio_path, 'rb') as f:
+                                st.download_button(
+                                    label="Save Audio",
+                                    data=f,
+                                    file_name=os.path.basename(audio_path),
+                                    mime='audio/mpeg'
+                                )
+                            os.remove(audio_path)
 
-# Add informational notes
+    except Exception as e:
+        st.error(f"Error: {str(e)}")
+        logging.error(f"Main error: {str(e)}")
+
+# Troubleshooting guide
 st.markdown("""
-### Notes:
-1. For age-restricted videos:
-   - You'll need to authenticate with Google in the popup window
-   - First download attempt might fail - try again after authentication
-2. Private videos cannot be downloaded unless you have direct access
-3. Downloads might be slower for large videos
-4. Always respect copyright and privacy laws
-""")
+## If nothing happens:
+
+1. **Check your internet connection**
+2. **Allow popups** for authentication
+3. **Try a different video URL** to test
+4. **Update dependencies**:
+   ```bash
+   pip install --upgrade pytube streamlit
