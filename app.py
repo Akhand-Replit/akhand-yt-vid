@@ -93,12 +93,4 @@ if url:
         st.error(f"Error: {str(e)}")
         logging.error(f"Main error: {str(e)}")
 
-# Troubleshooting guide
-st.markdown("""
-## If nothing happens:
-
-1. **Check your internet connection**
-2. **Allow popups** for authentication
-3. **Try a different video URL** to test
-4. **Update dependencies**:
 
