@@ -101,5 +101,4 @@ st.markdown("""
 2. **Allow popups** for authentication
 3. **Try a different video URL** to test
 4. **Update dependencies**:
-   ```bash
-   pip install --upgrade pytube streamlit
+
